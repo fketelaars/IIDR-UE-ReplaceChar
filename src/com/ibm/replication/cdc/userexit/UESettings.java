@@ -28,7 +28,12 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Set;
 
+// Singleton class
 public class UESettings {
+
+	// There can only be one object of UESettings, this prevents the properties
+	// file from being opened for every table in the subscription.
+	private static UESettings instance;
 
 	private Properties properties;
 	private final String propertiesFileName = "UEReplaceChar.properties";
@@ -41,22 +46,29 @@ public class UESettings {
 	UETrace ueTrace = new UETrace();
 
 	// Constructor
-	public UESettings() {
-		ueTrace.writeAlways("Loading settings for user exit");
+	private UESettings() {
 		loadConfiguration(propertiesFileName);
 		loadConversionMap();
+	}
+
+	// Get the UESettings objects, or instantiate it if is doesn't exist yet
+	public static synchronized UESettings getInstance() {
+		if (instance == null) {
+			instance = new UESettings();
+		}
+		return instance;
 	}
 
 	private void loadConfiguration(String fileName) {
 		ueTrace.writeAlways("Reading configuration from properties file " + fileName);
 		properties = new Properties();
 		try {
-			URL fileURL = this.getClass().getClassLoader().getResource(fileName);
-			InputStream stream = this.getClass().getResourceAsStream(fileName);
+			URL fileURL = UESettings.class.getClassLoader().getResource(fileName);
+			ueTrace.write("Resolved properties file: " + fileURL);
+			InputStream stream = UESettings.class.getClassLoader().getResourceAsStream(fileName);
 			properties.load(stream);
 			// Log all properties into the trace
 			Set<Object> propertiesKeys = properties.keySet();
-			ueTrace.writeAlways("Properties in properties file " + fileURL);
 			for (Object key : propertiesKeys) {
 				ueTrace.writeAlways(key + "=" + properties.getProperty((String) key));
 			}
@@ -75,7 +87,9 @@ public class UESettings {
 		for (int i = 0; i < replaceArray.length; i++) {
 			String[] replaceElement = replaceArray[i].split(":");
 			if (replaceElement.length == 2) {
-				ueTrace.writeAlways("Character " + replaceElement[0] + " will be replaced by " + replaceElement[1]);
+				ueTrace.writeAlways("Character " + replaceElement[0] + " (" + Utils.stringToHex(replaceElement[0])
+						+ ") will be replaced by " + replaceElement[1] + " (" + Utils.stringToHex(replaceElement[1])
+						+ ")");
 				conversionMap.put(replaceElement[0], replaceElement[1]);
 			} else
 				ueTrace.writeAlways(

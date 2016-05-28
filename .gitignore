@@ -1,3 +1,5 @@
-# Package Files #
-*.jar
+# Class files
+*.class
 
+# Directory with binary files
+/bin/

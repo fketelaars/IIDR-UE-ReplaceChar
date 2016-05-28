@@ -30,7 +30,9 @@ import com.datamirror.ts.target.publication.userexit.*;
 public class UEReplaceChar implements UserExitIF {
 
 	private UETrace ueTrace = new UETrace();
-	private UESettings ueSettings = new UESettings();
+	private UESettings ueSettings = UESettings.getInstance();
+
+	boolean firstTime = true;
 
 	private ArrayList<String> columnsToConvert = new ArrayList<String>();
 
@@ -44,6 +46,7 @@ public class UEReplaceChar implements UserExitIF {
 		if (parameter != null && !parameter.isEmpty()) {
 			columnsToConvert = new ArrayList<String>(Arrays.asList(parameter.split(",")));
 			ueTrace.write("Columns that will be converted: " + columnsToConvert);
+			eventPublisher.logEvent("Columns that will be converted: " + columnsToConvert);
 		}
 		if (columnsToConvert.isEmpty())
 			eventPublisher
@@ -66,16 +69,33 @@ public class UEReplaceChar implements UserExitIF {
 		DataRecordIF targetAfterImage = event.getData();
 		DataRecordIF targetBeforeImage = event.getBeforeData();
 
+		// Check if columns exist. If not, remove from list
+		if (firstTime) {
+			DataRecordIF image = targetAfterImage;
+			if (image == null)
+				image = targetBeforeImage;
+			for (String column : columnsToConvert) {
+				try {
+					String nativeType = image.getColumnNativeType(column);
+					ueTrace.write("Column " + column + " has type " + nativeType);
+				} catch (Exception e) {
+					columnsToConvert.remove(column);
+					event.logEvent("Warning: Specified column " + column + " not found, will be ignored.");
+				}
+			}
+			firstTime = false;
+		}
+
 		// Process all specified columns and convert the column in the before or
 		// after image, dependent on the type of operation
 		for (String column : columnsToConvert) {
-			if (eventType == ReplicationEventTypes.BEFORE_INSERT_EVENT
-					|| event.getEventType() == ReplicationEventTypes.BEFORE_UPDATE_EVENT) {
-				convertString(targetAfterImage, column);
-			}
 			if (eventType == ReplicationEventTypes.BEFORE_DELETE_EVENT
 					|| event.getEventType() == ReplicationEventTypes.BEFORE_UPDATE_EVENT) {
 				convertString(targetBeforeImage, column);
+			}
+			if (eventType == ReplicationEventTypes.BEFORE_INSERT_EVENT
+					|| event.getEventType() == ReplicationEventTypes.BEFORE_UPDATE_EVENT) {
+				convertString(targetAfterImage, column);
 			}
 		}
 		// Proceed with apply
@@ -85,22 +105,24 @@ public class UEReplaceChar implements UserExitIF {
 	private void convertString(DataRecordIF dataRecord, String column) {
 		try {
 			String beforeContent = dataRecord.getString(column);
-			String afterContent = beforeContent;
-			boolean charsReplaced = false;
-			for (String searchChar : ueSettings.conversionMap.keySet()) {
-				String replaceChar = ueSettings.conversionMap.get(searchChar);
-				if (beforeContent.contains(searchChar)) {
-					afterContent = beforeContent.replace(searchChar, replaceChar);
-					charsReplaced = true;
+			if (beforeContent != null) {
+				String afterContent = beforeContent;
+				boolean charsReplaced = false;
+				for (String searchChar : ueSettings.conversionMap.keySet()) {
+					String replaceChar = ueSettings.conversionMap.get(searchChar);
+					if (beforeContent.contains(searchChar)) {
+						afterContent = afterContent.replace(searchChar, replaceChar);
+						charsReplaced = true;
+					}
+				}
+				if (charsReplaced) {
+					if (ueSettings.debug)
+						ueTrace.write("Column " + column + " content " + beforeContent + " ("
+								+ Utils.stringToHex(beforeContent) + ") " + " converted to " + afterContent + " ("
+								+ Utils.stringToHex(afterContent) + ")");
+					dataRecord.setString(column, afterContent);
 				}
 			}
-			if (charsReplaced) {
-				if (ueSettings.debug)
-					ueTrace.write("Column " + column + " content " + beforeContent + " (" + stringToHex(beforeContent)
-							+ ") " + " converted to " + afterContent + " (" + stringToHex(afterContent) + ")");
-				dataRecord.setString(column, afterContent);
-			}
-
 		} catch (DataTypeConversionException e) {
 			ueTrace.writeAlways("Error while converting before-content of column " + column + ": " + e.getMessage());
 		} catch (InvalidSetDataException e) {
@@ -108,16 +130,6 @@ public class UEReplaceChar implements UserExitIF {
 					"Error while converting setting resulting string of column " + column + ": " + e.getMessage());
 		}
 
-	}
-
-	static String stringToHex(String string) {
-		StringBuilder buf = new StringBuilder(200);
-		for (char ch : string.toCharArray()) {
-			if (buf.length() > 0)
-				buf.append(' ');
-			buf.append(String.format("%04x", (int) ch));
-		}
-		return buf.toString();
 	}
 
 	@Override
