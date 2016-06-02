@@ -134,7 +134,8 @@ public class UEReplaceChar implements UserExitIF {
 
 	@Override
 	public void finish() throws UserExitException {
-		// Do nothing
+		// Ensure that settings are reloaded next time
+		UESettings.resetInstance();
 	}
 
 }

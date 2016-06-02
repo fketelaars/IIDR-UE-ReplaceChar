@@ -99,6 +99,11 @@ public class UESettings {
 
 	}
 
+	// Clean up the settings so that they are reloaded next time
+	public static synchronized void resetInstance() {
+		instance = null;
+	}
+
 	// Main method, just for validating this class
 	public static void main(String[] args) {
 		new UESettings();
