@@ -22,7 +22,8 @@ An example of character replacement can be found below. In the properties file t
 ![User Exit Properties](Documentation/images/UEReplaceChar_Properties.png)
 
 ### Update the CDC engine's classpath
-Assuming you have unzipped the file under the `<cdc_home>` directory, and the directory is called `IIDR-UE-ReplaceChar-master`, add the following entries to the end of the classpath specified in the `<cdc_home>/conf/system.cp`: "`:IIDR-UE-ReplaceChar-master/*:IIDR-UE-ReplaceChar`" (without the double quotes).
+Assuming you have unzipped the file under the `<cdc_home>` directory, and the directory is called `IIDR-UE-ReplaceChar-master`, add the following entries to the end of the classpath specified in the `<cdc_home>/conf/system.cp`: <br/>
+`:IIDR-UE-ReplaceChar-master/lib/*:IIDR-UE-ReplaceChar-master`
 
 Example:
  ![Update Classpath](Documentation/images/Update_Classpath.png)
