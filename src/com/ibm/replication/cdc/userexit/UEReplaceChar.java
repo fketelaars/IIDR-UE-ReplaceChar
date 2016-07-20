@@ -91,45 +91,35 @@ public class UEReplaceChar implements UserExitIF {
 		for (String column : columnsToConvert) {
 			if (eventType == ReplicationEventTypes.BEFORE_DELETE_EVENT
 					|| event.getEventType() == ReplicationEventTypes.BEFORE_UPDATE_EVENT) {
-				convertString(targetBeforeImage, column);
+				convertColumn(targetBeforeImage, column);
 			}
 			if (eventType == ReplicationEventTypes.BEFORE_INSERT_EVENT
 					|| event.getEventType() == ReplicationEventTypes.BEFORE_UPDATE_EVENT) {
-				convertString(targetAfterImage, column);
+				convertColumn(targetAfterImage, column);
 			}
 		}
 		// Proceed with apply
 		return true;
 	}
 
-	private void convertString(DataRecordIF dataRecord, String column) {
+	private void convertColumn(DataRecordIF dataRecord, String column) {
 		try {
 			String beforeContent = dataRecord.getString(column);
-			if (beforeContent != null) {
-				String afterContent = beforeContent;
-				boolean charsReplaced = false;
-				for (String searchChar : ueSettings.conversionMap.keySet()) {
-					String replaceChar = ueSettings.conversionMap.get(searchChar);
-					if (beforeContent.contains(searchChar)) {
-						afterContent = afterContent.replace(searchChar, replaceChar);
-						charsReplaced = true;
-					}
-				}
-				if (charsReplaced) {
-					if (ueSettings.debug)
-						ueTrace.write("Column " + column + " content " + beforeContent + " ("
-								+ Utils.stringToHex(beforeContent) + ") " + " converted to " + afterContent + " ("
-								+ Utils.stringToHex(afterContent) + ")");
-					dataRecord.setString(column, afterContent);
-				}
+			String afterContent = Utils.convertString(beforeContent, ueSettings.conversionMap);
+			// If debugging is on, report
+			if (ueSettings.debug) {
+				if (!afterContent.equals(beforeContent))
+					ueTrace.write("Column " + column + " content " + beforeContent + " ("
+							+ Utils.stringToHex(beforeContent) + ") " + " converted to " + afterContent + " ("
+							+ Utils.stringToHex(afterContent) + ")");
 			}
+			dataRecord.setString(column, afterContent);
 		} catch (DataTypeConversionException e) {
 			ueTrace.writeAlways("Error while converting before-content of column " + column + ": " + e.getMessage());
 		} catch (InvalidSetDataException e) {
 			ueTrace.writeAlways(
 					"Error while converting setting resulting string of column " + column + ": " + e.getMessage());
 		}
-
 	}
 
 	@Override

@@ -61,6 +61,16 @@ public class UETrace {
 	}
 
 	/**
+	 * Writes a trace message using a static method
+	 * 
+	 * @param message
+	 *            Message to write to the trace
+	 */
+	public static void writeAlwaysStatic(String message) {
+		Trace.traceAlways(message);
+	}
+
+	/**
 	 * Cleanup for trace facility -> not used in this implementation
 	 */
 	public void close() {

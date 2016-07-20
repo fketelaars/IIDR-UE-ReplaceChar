@@ -13,7 +13,8 @@ Download and unzip the master zip file from GitHub through the following link: [
 ## Configuration
 In most scenarios you will need to perform a couple of configuration tasks:
 - Update the configuration properties in the UEReplaceChar.properties file
-- Add the user exit and its configuration file to the classpath of the CDC target engine
+- Add the user exit and its configuration file to the classpath of the CDC *source* engine in case you want to use the derived expression user exit UEReplaceCharDE
+- Add the user exit and its configuration file to the classpath of the CDC *target* engine in case you want to use table level user exit UEReplaceChar
 
 ### Setting the configuration properties
 Update the `UEReplaceChar.properties` file with your favourite editor and specify the characters which you want to have replaced and their replacement value (`replaceCharacters`). When running the user exit for the first time, you may also want to set the `debug`property to `true` to add additional logging to the CDC traces.
@@ -25,24 +26,36 @@ An example of character replacement can be found below. In the properties file t
 Assuming you have unzipped the file under the `<cdc_home>` directory, and the directory is called `IIDR-UE-ReplaceChar-master`, add the following entries to the end of the classpath specified in the `<cdc_home>/conf/system.cp`: <br/>
 `:IIDR-UE-ReplaceChar-master/lib/*:IIDR-UE-ReplaceChar-master`
 
-Example:
+Example classpath for CDC engine:
  ![Update Classpath](Documentation/images/Update_Classpath.png)
 
 Once you have updated the classpath, restart the CDC instance(s) for the change to take effect.
 
-## Usage
-Once the user exit has been configured, you can use it for the tables in which you want to have characters replaced. When mapping a table, specify the `com.ibm.replication.cdc.userexit.UEReplaceChar`class for the `before-insert`, `before-update` and `before-delete` exit points. In the user exit parameters, specify a list of comma-separated columns in which you want to replace the characters.
+## Usage as Table Mapping user exit
+The first option for configuration is to employ the user exit in the table mappings, causing the column conversion to execute in the target engine. A side effect of configuring the user exit this way is that fastload apply may be disabled during the refresh of a table.
+
+When mapping a table, specify the `com.ibm.replication.cdc.userexit.UEReplaceChar`class for the `before-insert`, `before-update` and `before-delete` exit points. In the user exit parameters, specify a list of comma-separated columns in which you want to replace the characters.
 
 Example table mapping:
  ![Table Mapping User Exit](Documentation/images/Table_Mapping_User_Exit.png)
 
-
 Now, when you start the subscription, check the target table and see that the specified characters have been replaced as configured in the properties file.
+
+## Usage as a Derived Expression user exit
+The second option for configuration is to employ the user exit as a derived expression used in a derived column. This causes the column conversion to be executed in the source engine. Although this leads to additional CPU usage in the source engine, fastload apply can be used to refresh the tables.
+
+When mapping a table, create a derived column for every column you want to convert. Specify the `com.ibm.replication.cdc.userexit.UEReplaceCharDE` class for the `%USERFUNC` function, and use the original column as the first and only parameter.
+
+Example derived column:
+ ![Derived Column Expression](Documentation/images/Derived_Column_Expression.png)
+ 
+After you've defined the derived columns for the columns you wish to convert, proceed with the mapping of the derived columns to the target table's columns. Example:
+ ![Derived Column Mapping](Documentation/images/Derived_Column_Mapping.png)
 
 ### Debugging
 In case the results of the character replacement do not match your expectations, you can enable debugging for the user exit. It will then write additional traces in the CDC instance logs, which can be found in `<cdc_home>/instance/<instance>/log`. Log entries from the user exit are marked with `com.ibm.replication.cdc.userexit.UETrace`.
 
-When the subscription is started, the properties file is loaded (only once); you'll see the following messages:
+When the subscription is started and the first time the user exit is loaded, the properties file is retrieved. In case of the Derived Expression user exit, the properties will be loaded again if it has been more than 10 seconds ago since it has been  loaded the last time. You will see the following messages:
 
     85      2016-05-28 14:40:43.746 DB2_AUD Target Data Channel{98} com.ibm.replication.cdc.userexit.UETrace        writeAlways()   Reading configuration from properties file UEReplaceChar.properties
     86      2016-05-28 14:40:43.746 DB2_AUD Target Data Channel{98} com.ibm.replication.cdc.userexit.UETrace        writeAlways()   debug=true
@@ -74,5 +87,4 @@ Once you have this installed:
 - Check the target version to be used (this is the Java version of the compiled objects) and should match the version of the Java Runtime Engine that is included with CDC
 - Run `ant`
 - First the sources will be compiled into their respective .class files and finally the class files are packaged into a jar 
-
 

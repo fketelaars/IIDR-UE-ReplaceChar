@@ -45,15 +45,27 @@ public class UESettings {
 
 	UETrace ueTrace = new UETrace();
 
+	long instanceTime = 0;
+
 	// Constructor
 	private UESettings() {
+		instanceTime = System.currentTimeMillis();
 		loadConfiguration(propertiesFileName);
 		loadConversionMap();
 	}
 
-	// Get the UESettings objects, or instantiate it if is doesn't exist yet
+	// Get the UESettings objects, or instantiate it if is doesn't exist yet or
+	// it has been loaded more than 10 seconds ago
 	public static synchronized UESettings getInstance() {
 		if (instance == null) {
+			UETrace.writeAlwaysStatic("Settings not instantiated yet, they will be loaded");
+			instance = new UESettings();
+		}
+		// If it has been longer than 10 seconds since the settings have been
+		// loaded the subscription may have been restarted, reload the settings
+		long currentTime = System.currentTimeMillis();
+		if (currentTime - instance.instanceTime > 10000) {
+			UETrace.writeAlwaysStatic("Settings have been loaded more than 10 seconds ago, they will be reloaded");
 			instance = new UESettings();
 		}
 		return instance;
@@ -64,7 +76,7 @@ public class UESettings {
 		properties = new Properties();
 		try {
 			URL fileURL = UESettings.class.getClassLoader().getResource(fileName);
-			ueTrace.write("Resolved properties file: " + fileURL);
+			ueTrace.writeAlways("Resolved properties file: " + fileURL);
 			InputStream stream = UESettings.class.getClassLoader().getResourceAsStream(fileName);
 			properties.load(stream);
 			// Log all properties into the trace
