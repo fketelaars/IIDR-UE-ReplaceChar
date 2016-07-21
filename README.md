@@ -8,7 +8,7 @@ In some cases, such as when replicating to Teradata, non-printable characters ha
 ## Installation
 The GitHub repository contains the source but also the user exit in its compiled form, enclosed in a jar file. If you wish, you can build the jar file yourself using Ant, or to manually compile the user exit. If you wish to do so, please refer to the [Compilation](#compilation) section.
 
-Download and unzip the master zip file from GitHub through the following link: [Download Zip](https://github.com/fketelaars/IIDR-UE-ReplaceChar/archive/master.zip). The unzipped directory can be placed anywhere on the server that runs the CDC target engine; we recommend to unzip it under the target engine's home directory (hereafter referred to as `<cdc_home>`)
+Download and unzip the master zip file from GitHub through the following link: [Download Zip](https://github.com/fketelaars/IIDR-UE-ReplaceChar/archive/master.zip). The unzipped directory can be placed anywhere on the server that runs the CDC target engine; we recommend to unzip it under the CDC engine's home directory (hereafter referred to as `<cdc_home>`)
 
 ## Configuration
 In most scenarios you will need to perform a couple of configuration tasks:
